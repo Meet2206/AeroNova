@@ -1,2 +1,0 @@
-# AeroNova
-SIH

@@ -1,63 +1,31 @@
-import { useState, useEffect } from "react";
-import { SimulationProvider } from "./simulation/SimulationProvider";
-import { AppShell } from "./components/layout/AppShell";
-import { Dashboard } from "./pages/Dashboard/Dashboard";
-import { Camera } from "./pages/Camera/Camera";
-import { Logs } from "./pages/Logs/Logs";
-import { SystemHealth } from "./pages/SystemHealth/SystemHealth";
+import { useState } from 'react'
+import { MissionProvider } from './simulation/MissionContext'
+import MissionHeader from './components/MissionHeader'
+import Dashboard from './pages/Dashboard'
+import Camera from './pages/Camera'
+import Logs from './pages/Logs'
+import SystemHealth from './pages/SystemHealth'
 
-function AppContent() {
-  const [currentPath, setCurrentPath] = useState<string>(
-    window.location.hash || "#/dashboard"
-  );
+type Page = 'dashboard' | 'camera' | 'logs' | 'system-health'
 
-  useEffect(() => {
-    const handleHashChange = () => {
-      setCurrentPath(window.location.hash || "#/dashboard");
-    };
-
-    window.addEventListener("hashchange", handleHashChange);
-    
-    // Default redirect to dashboard
-    if (!window.location.hash || window.location.hash === "#/") {
-      window.location.hash = "#/dashboard";
-    }
-
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
-
-  const navigateTo = (path: string) => {
-    window.location.hash = path;
-    setCurrentPath(path);
-  };
-
-  const renderPage = () => {
-    switch (currentPath) {
-      case "#/camera":
-        return <Camera />;
-      case "#/logs":
-        return <Logs />;
-      case "#/system-health":
-        return <SystemHealth />;
-      case "#/dashboard":
-      default:
-        return <Dashboard />;
-    }
-  };
+export default function App() {
+  const [page, setPage] = useState<Page>('dashboard')
 
   return (
-    <AppShell currentPath={currentPath} onNavigate={navigateTo}>
-      {renderPage()}
-    </AppShell>
-  );
-}
+    <MissionProvider>
+      <div
+        className="flex flex-col h-full overflow-hidden"
+        style={{ fontFamily: 'Inter, sans-serif', background: '#F4F1EA' }}
+      >
+        <MissionHeader page={page} onNavigate={(p) => setPage(p as Page)} />
 
-function App() {
-  return (
-    <SimulationProvider>
-      <AppContent />
-    </SimulationProvider>
-  );
+        <main className="flex-1 min-h-0 overflow-hidden">
+          {page === 'dashboard' && <Dashboard />}
+          {page === 'camera' && <Camera />}
+          {page === 'logs' && <Logs />}
+          {page === 'system-health' && <SystemHealth />}
+        </main>
+      </div>
+    </MissionProvider>
+  )
 }
-
-export default App;

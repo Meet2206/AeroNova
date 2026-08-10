@@ -1,88 +1,45 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import 'tailwindcss';
 
-@theme {
-  --color-bg-base: #090A0C;
-  --color-bg-surface: #121418;
-  --color-bg-overlay: #1A1D24;
-  --color-bg-deep: #05060A;
-
-  --color-border-subtle: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.18);
-
-  --color-focus: #38BDF8;
-  --color-nominal: #10B981;
-  --color-warning: #F59E0B;
-  --color-critical: #EF4444;
-  --color-armed: #DC2626;
-  --color-info: #38BDF8;
-
-  --color-text-primary: #F1F5F9;
-  --color-text-secondary: #94A3B8;
-  --color-text-muted: #475569;
-
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+@theme inline {
+  --color-pearl: #F4F1EA;
+  --color-taupe: #E5DED2;
+  --color-olive: #4B5320;
+  --color-olive-dark: #30362A;
+  --color-olive-grey: #6B6F63;
+  --color-sea: #7FA9A6;
+  --color-sea-light: #A8C8C6;
+  --color-terracotta: #B85C38;
+  --color-charcoal: #20231E;
+  --color-critical: #9B2C2C;
+  --color-amber: #B87925;
+  --color-nominal: #2D6A4F;
+  --font-ui: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
-/* ─── CSS Custom Properties (for direct var() use) ─────────────────────────── */
-:root {
-  --bg-base: #090A0C;
-  --bg-surface: #121418;
-  --bg-overlay: #1A1D24;
-  --bg-deep: #05060A;
-
-  --border-subtle: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.16);
-
-  --nominal: #10B981;
-  --warning: #F59E0B;
-  --critical: #EF4444;
-  --armed: #DC2626;
-  --info: #38BDF8;
-  --focus: #38BDF8;
-
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
-  --text-muted: #475569;
-}
-
-/* ─── Global Resets ─────────────────────────────────────────────────────────── */
-*, *::before, *::after {
+* {
   box-sizing: border-box;
 }
 
 html, body, #root {
-  margin: 0;
-  padding: 0;
   height: 100%;
-  width: 100%;
   overflow: hidden;
 }
 
 body {
-  background-color: var(--bg-base);
-  color: var(--text-primary);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  font-size: 13px;
-  line-height: 1.5;
+  font-family: var(--font-ui);
+  background-color: #F4F1EA;
+  color: #20231E;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
-#root {
-  display: flex;
-  flex-direction: column;
+.font-mono {
+  font-family: var(--font-mono) !important;
 }
 
-/* ─── Telemetry Typography ──────────────────────────────────────────────────── */
-.mono {
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ─── Scrollbars ────────────────────────────────────────────────────────────── */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -91,295 +48,69 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: #C8C2B6;
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #9B9590;
 }
 
-/* ─── MapLibre overrides ────────────────────────────────────────────────────── */
-.maplibregl-canvas {
-  outline: none;
-}
-.maplibregl-ctrl-attrib,
-.maplibregl-ctrl-logo {
-  display: none !important;
+/* Tabular figures for telemetry */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-/* ─── GPS Flash animation ───────────────────────────────────────────────────── */
-@keyframes gps-flash {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.15; }
-}
-.gps-flash {
-  animation: gps-flash 0.4s ease-in-out 2;
-}
-
-/* ─── Pulse slow animation ──────────────────────────────────────────────────── */
-@keyframes pulse-slow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-.pulse-slow {
-  animation: pulse-slow 2.5s ease-in-out infinite;
-}
-
-/* ─── Spin slow animation ───────────────────────────────────────────────────── */
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-.spin-slow {
-  animation: spin-slow 8s linear infinite;
-}
-
-/* ─── Custom range slider for Slide-to-Arm ─────────────────────────────────── */
-.arm-slider {
+/* Safety gate slide interaction */
+.safety-slider {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
-  cursor: ew-resize;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  margin: 0;
-  padding: 0;
-  opacity: 0;
-  z-index: 10;
-}
-
-/* ─── State color indicators ────────────────────────────────────────────────── */
-.status-nominal { color: var(--nominal); }
-.status-warning { color: var(--warning); }
-.status-critical { color: var(--critical); }
-.status-info    { color: var(--info); }
-.status-muted   { color: var(--text-muted); }
-
-.bg-nominal   { background-color: var(--nominal); }
-.bg-warning   { background-color: var(--warning); }
-.bg-critical  { background-color: var(--critical); }
-.bg-info      { background-color: var(--info); }
-
-.border-nominal  { border-color: var(--nominal); }
-.border-warning  { border-color: var(--warning); }
-.border-critical { border-color: var(--critical); }
-.border-info     { border-color: var(--info); }
-
-/* ─── Panel base ────────────────────────────────────────────────────────────── */
-.panel {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 4px;
-}
-
-.panel-header {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* ─── Badge tokens ──────────────────────────────────────────────────────────── */
-.badge {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 1px 5px;
-  border-radius: 2px;
-  border: 1px solid;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.badge-nominal  { color: var(--nominal); background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); }
-.badge-warning  { color: var(--warning); background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); }
-.badge-critical { color: var(--critical); background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
-.badge-info     { color: var(--info);     background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); }
-.badge-muted    { color: var(--text-muted); background: rgba(255,255,255,0.04); border-color: var(--border-subtle); }
-
-/* ─── Nav button ────────────────────────────────────────────────────────────── */
-.nav-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 2px;
-  border: 1px solid transparent;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
   cursor: pointer;
-  background: transparent;
-  transition: all 0.12s ease;
 }
-.nav-btn:hover {
-  color: var(--text-primary);
-  background: rgba(255,255,255,0.05);
-}
-.nav-btn.active {
-  color: var(--text-primary);
-  background: rgba(255,255,255,0.07);
-  border-color: var(--border-strong);
-}
-
-/* ─── Telemetry value rows ──────────────────────────────────────────────────── */
-.telem-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 3px 0;
-}
-.telem-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 8.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-.telem-value {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-/* ─── Safety gate specific ──────────────────────────────────────────────────── */
-.safety-gate-locked {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid var(--border-subtle);
-  border-radius: 4px;
-}
-.safety-gate-armed {
-  background: rgba(220, 38, 38, 0.08);
-  border: 2px solid var(--armed);
-  border-radius: 4px;
-}
-.safety-gate-ready {
-  background: rgba(220, 38, 38, 0.05);
-  border: 1px solid rgba(220, 38, 38, 0.4);
-  border-radius: 4px;
-}
-
-/* ─── Event log specific ────────────────────────────────────────────────────── */
-.event-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 2px 4px;
+.safety-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 36px;
+  height: 36px;
+  background: #B85C38;
   border-radius: 2px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  line-height: 1.6;
+  cursor: grab;
 }
-.event-row:hover {
-  background: rgba(255,255,255,0.03);
-}
-.event-ts {
-  color: var(--text-muted);
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-  width: 88px;
-}
-.event-source {
-  color: var(--text-muted);
-  flex-shrink: 0;
-  width: 64px;
-  text-transform: uppercase;
-  font-size: 8px;
-}
-.event-msg {
-  color: var(--text-primary);
-  flex: 1;
-  word-break: break-word;
-  font-size: 9px;
+.safety-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
 }
 
-/* ─── Confidence bar ────────────────────────────────────────────────────────── */
-.confidence-bar-track {
-  width: 100%;
-  height: 3px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.confidence-bar-fill {
-  height: 100%;
-  background: var(--nominal);
-  border-radius: 2px;
-  transition: width 0.15s ease;
+/* Confidence bar animation */
+@keyframes pulse-bar {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
 }
 
-/* ─── FSM track node ────────────────────────────────────────────────────────── */
-.fsm-node-active {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--info);
-  border: 2px solid var(--info);
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
-  animation: pulse-slow 1.5s ease-in-out infinite;
-  flex-shrink: 0;
-}
-.fsm-node-done {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--nominal);
-  border: 2px solid var(--nominal);
-  flex-shrink: 0;
-}
-.fsm-node-pending {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: transparent;
-  border: 2px solid var(--text-muted);
-  flex-shrink: 0;
-}
-.fsm-node-armed {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--critical);
-  border: 2px solid var(--critical);
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
-  animation: pulse-slow 0.8s ease-in-out infinite;
-  flex-shrink: 0;
+@keyframes blink-armed {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
-/* ─── Divider ───────────────────────────────────────────────────────────────── */
-.divider {
-  border: none;
-  border-top: 1px solid var(--border-subtle);
-  margin: 10px 0;
+.armed-blink {
+  animation: blink-armed 1.5s ease-in-out 3;
 }
 
-/* ─── Stale overlay ─────────────────────────────────────────────────────────── */
-.stale-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(9, 10, 12, 0.82);
-  backdrop-filter: blur(1px);
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Target reticle lock */
+@keyframes reticle-lock {
+  0% { transform: scale(1.4); opacity: 0.3; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.reticle-lock {
+  animation: reticle-lock 150ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Event stream fade in */
+@keyframes event-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.event-new {
+  animation: event-in 200ms ease forwards;
 }
