@@ -101,6 +101,32 @@ def check_dataset_config() -> None:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def check_batch_sizing() -> None:
+    section("3b. VRAM BATCH SIZING")
+    sys.path.insert(0, str(ROOT))
+    from src.train import safe_batch
+
+    GiB = 2**30
+    # Pinned to measurements on an RTX 4050, not to a formula. If someone
+    # retunes safe_batch() and these drift, a long run OOMs at hour 6.
+    record("4.4 GiB free -> 8 (measured: 8 ran clean, 16 OOMed)",
+           safe_batch(int(4.4 * GiB), 640) == 8, str(safe_batch(int(4.4 * GiB), 640)))
+    record("15 GiB free -> 32 (matches kaggle_train default)",
+           safe_batch(int(15 * GiB), 640) == 32, str(safe_batch(int(15 * GiB), 640)))
+    record("never returns 0 on a tiny card", safe_batch(int(0.5 * GiB), 640) >= 2)
+    record("larger imgsz lowers batch",
+           safe_batch(int(6 * GiB), 1280) < safe_batch(int(6 * GiB), 640))
+    record("more VRAM never lowers batch",
+           all(safe_batch(int(a * GiB), 640) <= safe_batch(int(b * GiB), 640)
+               for a, b in zip([2, 4, 8, 16], [4, 8, 16, 32])))
+
+    # An over-ceiling explicit batch must be refused, not warned about.
+    rc, out = run_py(["-m", "src.train", "--batch", "512", "--epochs", "1",
+                      "--name", "_never"])
+    record("explicit over-ceiling batch is refused",
+           rc != 0 and ("exceeds the safe ceiling" in out or "--force-batch" in out))
+
+
 def check_eval_guard(weights: Path | None) -> None:
     section("4. EVAL GUARD (the 15x silent-failure footgun)")
     full = ROOT / "data" / "yolo" / "val" / "images"
@@ -308,6 +334,7 @@ def main() -> int:
     check_unit_tests()
     check_gsd()
     check_dataset_config()
+    check_batch_sizing()
     check_eval_guard(w)
     check_sliced_inference(w)
     if not args.skip_slow:

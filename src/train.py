@@ -95,6 +95,34 @@ def resolve_data_yaml(path: Path) -> str:
     return str(out)
 
 
+def safe_batch(free_bytes: int, imgsz: int) -> int:
+    """Largest batch that reliably survives a long run at this image size.
+
+    Calibrated against two measured points on an RTX 4050 (yolo11n, 640, AMP),
+    not against a formula from a blog post:
+
+        batch 8   -> ~2.3 GiB of training memory   (ran clean)
+        batch 16  -> ~3.7 GiB                      (OOMed at epoch 7)
+
+    Those give ~0.175 GiB per image and ~0.9 GiB fixed (CUDA context, model,
+    optimiser state). We budget 80% of free memory and assume 1.2 GiB fixed,
+    because batch 16 did not fail on arithmetic -- it fit, ran for 35 minutes,
+    and then died when the desktop compositor grew a few hundred MB. Headroom
+    is the whole point; a batch that "just fits" does not survive a long run.
+
+    Scaling with imgsz**2 is right for activations, which dominate here.
+    """
+    free_gib = free_bytes / 2**30
+    per_img = 0.175 * (imgsz / 640) ** 2
+    usable = max(0.0, free_gib * 0.80 - 1.2)
+    n = int(usable / per_img)
+    # Clamp to powers of two for predictable BN behaviour; never below 2.
+    for b in (64, 32, 16, 8, 4, 2):
+        if n >= b:
+            return b
+    return 2
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data", default=str(ROOT / "configs" / "person_aerial.yaml"))
@@ -102,7 +130,11 @@ def main() -> None:
                     help="yolo11n for RPi deployment, yolo11s for Jetson/GCS accuracy")
     ap.add_argument("--imgsz", type=int, default=640, help="must equal the tile size used in tile.py")
     ap.add_argument("--epochs", type=int, default=100)
-    ap.add_argument("--batch", type=int, default=8, help="8 fits 6GB VRAM at 640 with AMP")
+    ap.add_argument("--batch", type=int, default=None,
+                    help="omit to auto-size from free VRAM (recommended); "
+                         "an explicit value over the safe ceiling requires --force-batch")
+    ap.add_argument("--force-batch", action="store_true",
+                    help="override the VRAM ceiling. You will probably OOM mid-run.")
     ap.add_argument("--workers", type=int, default=4,
                     help="drop to 2 if Windows dataloader workers crash")
     ap.add_argument("--name", default="aerial_person")
@@ -118,12 +150,30 @@ def main() -> None:
         args.device = 0 if torch.cuda.is_available() else "cpu"
     if args.device == "cpu":
         print("WARNING: training on CPU. This will take days, not hours.")
+        args.batch = args.batch or 8
     else:
         name = torch.cuda.get_device_name(0)
         free, total = torch.cuda.mem_get_info(0)
         print(f"GPU: {name}  free {free/2**30:.1f} / {total/2**30:.1f} GiB")
-        if total / 2**30 < 7 and args.batch > 8:
-            print(f"  batch={args.batch} will likely OOM on this card; 8 is the safe ceiling at 640.")
+        safe = safe_batch(free, args.imgsz)
+
+        if args.batch is None:
+            args.batch = safe
+            print(f"[batch] auto-sized to {safe} from {free/2**30:.1f} GiB free")
+        elif args.batch > safe and not args.force_batch:
+            raise SystemExit(
+                f"\nbatch={args.batch} exceeds the safe ceiling of {safe} for "
+                f"{free/2**30:.1f} GiB free VRAM at imgsz={args.imgsz}.\n\n"
+                f"This is not a hypothetical: batch=16 on a 6 GB RTX 4050 survived 7 epochs\n"
+                f"of this exact dataset and then died with CUDA OOM in the backward pass,\n"
+                f"because the desktop compositor grew by a few hundred MB. A warning was\n"
+                f"printed at startup and was useless -- by the time it matters you are\n"
+                f"35 minutes in and not watching.\n\n"
+                f"  Drop --batch (auto-sizes), use --batch {safe}, or pass --force-batch.\n"
+            )
+        # Headroom check even for an in-range batch: other apps can grow.
+        if free / 2**30 < 3.0:
+            print(f"  only {free/2**30:.1f} GiB free -- close Chrome before a long run.")
 
     model = YOLO(args.model)
     model.train(
