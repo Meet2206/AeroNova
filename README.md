@@ -175,12 +175,39 @@ In a Kaggle notebook:
 3. *Add-ons → Secrets →* add **`HF_TOKEN`** (a **write** token from
    huggingface.co/settings/tokens)
 
+**This repo is private, so Kaggle cannot `git clone` it.** Use a Kaggle
+Dataset instead — no token, nothing to leak, and it survives session restarts:
+
+1. Locally: `git archive -o aeronova-src.zip HEAD` (source only — `.gitignore`
+   already keeps datasets and weights out).
+2. kaggle.com → *Datasets* → *New Dataset* → upload that zip → name it
+   `aeronova-src`. Set it **Private**.
+3. In the notebook: *+ Add Input* → *Datasets* → `aeronova-src`.
+
 ```python
-!git clone https://github.com/<you>/sih-drone-vision /kaggle/working/repo
+!cp -r /kaggle/input/aeronova-src /kaggle/working/repo
 %cd /kaggle/working/repo
 !pip install -q ultralytics gdown
 !python kaggle/kaggle_train.py --epochs 100 --hf-repo Siddh10/sih-aerial-person
 ```
+
+Re-upload a new dataset *version* whenever the code changes — that is the one
+extra step a private repo costs you.
+
+<details>
+<summary>If you later make the repo public</summary>
+
+```python
+!git clone https://github.com/SiddhPatel0424/AeroNova /kaggle/working/repo
+%cd /kaggle/working/repo
+!pip install -q ultralytics gdown
+!python kaggle/kaggle_train.py --epochs 100 --hf-repo Siddh10/sih-aerial-person
+```
+
+Do **not** work around privacy by putting a GitHub PAT in the notebook source
+— it ends up in the notebook's version history even after you delete the line.
+Kaggle Secrets or a Dataset, nothing else.
+</details>
 
 The 12-hour wall is real — ~100 epochs on ~30 k tiles is 6–9 h on a P100. The
 script **pushes `best.pt` to the Hub every 10 epochs**, so a killed session
