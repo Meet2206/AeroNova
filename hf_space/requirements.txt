@@ -1,0 +1,12 @@
+# CPU-only torch. The default PyPI torch wheel pulls ~2.5 GB of CUDA
+# libraries that a free CPU Space cannot use and that blow the image size
+# limit -- always pin the CPU index here.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.6.0
+torchvision==0.21.0
+
+ultralytics>=8.3.0
+opencv-python-headless>=4.10
+numpy>=1.26
+gradio>=4.44
+huggingface-hub>=0.26

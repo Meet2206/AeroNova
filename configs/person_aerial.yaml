@@ -1,0 +1,17 @@
+# Single-class aerial person detection dataset.
+#
+# One class only. A rescue drone does not need to know whether the victim is
+# standing, sitting or prone -- it needs to know a human is there. Collapsing
+# VisDrone's `pedestrian` and `people` into one class roughly doubles the
+# positive examples per class and removes a confusion the mission does not care
+# about.
+#
+# Paths are relative to this file's parent's parent (repo root) when passed as
+# an absolute path to ultralytics. Regenerate with scripts/build_dataset.ps1.
+
+path: ../data/tiled
+train: train/images
+val: val/images
+
+names:
+  0: person
