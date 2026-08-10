@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Datasets and weights -- never commit these
+data/
+runs/
+*.pt
+*.onnx
+*.engine
+*.zip
+eval_report.json

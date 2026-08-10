@@ -1,0 +1,16 @@
+# Install torch FIRST from the CUDA index, then this file:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+#   pip install -r requirements.txt
+# Installing ultralytics before torch pulls the CPU-only wheel and you will
+# train at ~1/40th speed without any error message telling you why.
+
+ultralytics>=8.3.0
+opencv-python>=4.10
+numpy>=1.26
+tqdm>=4.66
+pyyaml>=6.0
+gdown>=5.2          # VisDrone is hosted on Google Drive
+matplotlib>=3.8     # PR curves in eval
+
+# Optional, only if you want SAHI's own slicing utilities instead of src/tile.py
+# sahi>=0.11.20
