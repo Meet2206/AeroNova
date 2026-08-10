@@ -1,0 +1,10 @@
+{
+  "description": "Delivers a precise aerial disaster-response command interface combining AI intelligence, live drone telemetry, and human authorization for mission-critical decisions.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
