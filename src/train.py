@@ -50,6 +50,49 @@ import torch
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def resolve_data_yaml(path: Path) -> str:
+    """Rewrite the dataset yaml with an ABSOLUTE `path`, next to the original.
+
+    Ultralytics resolves a relative dataset `path:` against its own
+    `datasets_dir` setting (~/AppData/Roaming/Ultralytics/settings.json), NOT
+    against the yaml's own location -- which is what everyone assumes. Our
+    `path: ../data/tiled` therefore resolves to C:/Users/<you>/data/tiled and
+    the run dies with a confusing "images not found" pointing at a directory
+    nobody created.
+
+    Resolving relative to the yaml file is the behaviour users expect, so we
+    materialise a resolved copy and hand ultralytics that instead.
+    """
+    import yaml
+
+    path = path.resolve()
+    if not path.exists():
+        raise SystemExit(f"dataset config not found: {path}")
+    cfg = yaml.safe_load(path.read_text())
+
+    raw = Path(str(cfg.get("path", ".")))
+    resolved = raw if raw.is_absolute() else (path.parent / raw).resolve()
+    if not resolved.exists():
+        raise SystemExit(
+            f"\nDataset root does not exist: {resolved}\n"
+            f"  (from '{cfg.get('path')}' in {path})\n\n"
+            f"Build it first:\n"
+            f"  python scripts/get_data.py --splits train val\n"
+            f"  python -m src.prepare_visdrone --src data/raw/VisDrone2019-DET-train --dst data/yolo/train\n"
+            f"  python -m src.tile --src data/yolo/train --dst data/tiled/train\n"
+        )
+
+    for split in ("train", "val"):
+        if split in cfg and not (resolved / cfg[split]).exists():
+            raise SystemExit(f"missing {split} images: {resolved / cfg[split]}")
+
+    cfg["path"] = str(resolved).replace("\\", "/")
+    out = path.parent / f".resolved_{path.name}"
+    out.write_text(yaml.safe_dump(cfg, sort_keys=False))
+    print(f"[data] {path.name} -> {cfg['path']}")
+    return str(out)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data", default=str(ROOT / "configs" / "person_aerial.yaml"))
@@ -66,6 +109,8 @@ def main() -> None:
     args = ap.parse_args()
 
     from ultralytics import YOLO
+
+    args.data = resolve_data_yaml(Path(args.data))
 
     if args.device is None:
         args.device = 0 if torch.cuda.is_available() else "cpu"

@@ -56,6 +56,19 @@ Run `src/gsd.py` with *your* camera before quoting any numbers.
                           break this and recall collapses
 ```
 
+**This is measured, not argued.** Same weights, same 12 VisDrone frames, the
+only difference being whether inference was sliced:
+
+| | overall recall @ IoU0.25 | 16–32 px bucket |
+|---|---|---|
+| **Sliced** (matched scale) | **0.336** | **0.296** |
+| Full-frame (downscaled to 640) | 0.054 | 0.020 |
+
+**15× worse recall on the target bucket.** And it fails *silently* — it reports
+plausible-looking bad numbers, so the natural conclusion is "the model is
+broken" when in fact the evaluation is. `src/eval.py` now refuses to run
+full-frame on large images without `--sliced` for exactly this reason.
+
 Then, per confirmed detection:
 
 ```
@@ -117,8 +130,33 @@ python -m src.prepare_visdrone --src data/raw/VisDrone2019-DET-val   --dst data/
 python -m src.tile --src data/yolo/train --dst data/tiled/train
 python -m src.tile --src data/yolo/val   --dst data/tiled/val --keep-empty-ratio 1.0
 python -m src.train --model yolo11s.pt --epochs 100
+
+# evaluate on tiles (the default)
 python -m src.eval --weights runs/aerial_person/weights/best.pt
+
+# evaluate on full frames the way the drone actually sees them
+python -m src.eval --weights runs/aerial_person/weights/best.pt \
+    --images data/yolo/val/images --sliced
 ```
+
+## Current state
+
+The **pipeline is verified end to end; the model is not trained yet.** What has
+actually been run:
+
+* VisDrone val converted and tiled: 541 frames → 2,798 tiles, **zero boxes
+  lost**, median box size preserved at 26 px (full-frame training would have
+  shrunk it to ~7 px).
+* A 2-epoch smoke run on an RTX 4050 converges (mAP50 0.13 → 0.24) — enough to
+  prove the loop, meaningless as a result.
+* The evaluator reproduces the expected physics gradient across size buckets
+  (recall 0.10 / 0.25 / 0.43 / 0.54), which is the check that it measures the
+  right thing.
+* Sliced-vs-full-frame gap measured at 15× (table above).
+* All three test suites green.
+
+**The real training run is yours to launch on Kaggle** — it needs your
+`HF_TOKEN` in Kaggle Secrets, which cannot be set from here.
 
 ---
 

@@ -152,6 +152,23 @@ class HubCheckpoint:
             print(f"[hub] upload failed (training continues): {e}")
 
 
+def _try_fetch_hub_checkpoint(repo_id: str | None, run_dir: Path) -> Path | None:
+    """Pull best.pt back from the Hub after Kaggle wipes /kaggle/working."""
+    if not repo_id:
+        return None
+    try:
+        from huggingface_hub import hf_hub_download
+        p = hf_hub_download(repo_id, filename="best.pt")
+        dest = run_dir / "weights"
+        dest.mkdir(parents=True, exist_ok=True)
+        target = dest / "hub_best.pt"
+        shutil.copy(p, target)
+        return target
+    except Exception as e:  # noqa: BLE001 -- repo may not exist yet
+        print(f"[resume] no Hub checkpoint available: {e}")
+        return None
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model", default="yolo11s.pt")
@@ -187,11 +204,32 @@ def main() -> None:
     run_dir = WORK / "runs" / args.name
     ckpt = HubCheckpoint(args.hf_repo, run_dir, args.push_every)
 
+    # Resume must fail LOUDLY. The 12-hour wall is the entire reason this
+    # script exists; silently restarting a run the user believes is resuming
+    # burns another 8 GPU-hours and they only find out at the end.
     weights = args.model
     last = run_dir / "weights" / "last.pt"
-    if args.resume and last.exists():
-        print(f"[resume] continuing from {last}")
-        weights = str(last)
+    resuming = False
+    if args.resume:
+        if last.exists():
+            print(f"[resume] continuing from {last}")
+            weights, resuming = str(last), True
+        else:
+            hub_last = _try_fetch_hub_checkpoint(args.hf_repo, run_dir)
+            if hub_last:
+                print(f"[resume] no local checkpoint; pulled {hub_last} from the Hub")
+                print("[resume] NOTE: this restarts the LR schedule -- the Hub only holds")
+                print("[resume] best.pt, not optimiser state. Weights are preserved.")
+                weights = str(hub_last)
+            else:
+                raise SystemExit(
+                    f"\n--resume passed but there is nothing to resume from.\n"
+                    f"  looked for: {last}\n"
+                    f"  and on the Hub: {args.hf_repo or '(no --hf-repo)'}\n\n"
+                    f"Kaggle wipes /kaggle/working between sessions, so a local last.pt\n"
+                    f"does not survive. Either drop --resume to start fresh, or make sure\n"
+                    f"HF_TOKEN is set so checkpoints actually reach the Hub next time.\n"
+                )
 
     model = YOLO(weights)
 
@@ -206,7 +244,7 @@ def main() -> None:
     model.train(
         data=str(data_yaml), imgsz=args.imgsz, epochs=args.epochs, batch=args.batch,
         device=0, workers=4, project=str(WORK / "runs"), name=args.name,
-        exist_ok=True, resume=args.resume and last.exists(),
+        exist_ok=True, resume=resuming,
         amp=True, cache=False, patience=30, cos_lr=True, seed=0, deterministic=False,
         # See src/train.py for the full rationale behind each of these.
         cls=0.3, box=7.5, dfl=1.5,

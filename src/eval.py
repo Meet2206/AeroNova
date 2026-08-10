@@ -131,6 +131,28 @@ def evaluate(weights: Path, img_dir: Path, lbl_dir: Path, conf: float,
     tp_by_bucket: dict[float, dict[str, int]] = {t: {b[0]: 0 for b in SIZE_BUCKETS} for t in records}
 
     paths = sorted(p for p in img_dir.iterdir() if p.suffix.lower() in {".jpg", ".jpeg", ".png"})
+    if not paths:
+        raise SystemExit(f"no images in {img_dir}")
+
+    # GUARD: full-frame inference on large frames is the exact failure this
+    # whole repo exists to prevent, and it fails *quietly* -- it reports
+    # plausible-looking near-zero recall rather than erroring, so the reader
+    # concludes the model is broken when in fact the evaluation is.
+    # Measured on 12 VisDrone frames with identical weights:
+    #     sliced      overall recall 0.336, 16-32px recall 0.296
+    #     full-frame  overall recall 0.054, 16-32px recall 0.020   <- 15x worse
+    if not sliced:
+        probe = cv2.imread(str(paths[0]))
+        if probe is not None and max(probe.shape[:2]) > 1.5 * tile:
+            raise SystemExit(
+                f"\nRefusing to run full-frame inference on {probe.shape[1]}x{probe.shape[0]} images.\n"
+                f"They will be downscaled to {tile}px, destroying every small target, and the\n"
+                f"resulting numbers will look like a broken model rather than a broken eval.\n"
+                f"(Measured: 15x worse recall in the 16-32px bucket.)\n\n"
+                f"  Either:  add --sliced          (evaluate full frames the way you fly them)\n"
+                f"  Or:      point --images at a pre-tiled directory, e.g. data/tiled/val/images\n"
+            )
+
     for ip in tqdm(paths, desc="eval"):
         img = cv2.imread(str(ip))
         if img is None:
@@ -244,7 +266,10 @@ def print_report(rep: dict) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--weights", type=Path, required=True)
-    ap.add_argument("--images", type=Path, default=ROOT / "data" / "yolo" / "val" / "images")
+    # Default to the TILED val set: full-frame eval on untiled frames silently
+    # reports garbage (see the guard in evaluate()). To evaluate untiled frames
+    # the way the drone actually sees them, pass --images data/yolo/val/images --sliced
+    ap.add_argument("--images", type=Path, default=ROOT / "data" / "tiled" / "val" / "images")
     ap.add_argument("--labels", type=Path, default=None)
     ap.add_argument("--conf", type=float, default=0.15,
                     help="low by design: recall-first. Tune off the PR curve, not by feel.")
