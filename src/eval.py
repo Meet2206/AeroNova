@@ -56,7 +56,7 @@ def load_labels(lbl_path: Path, w: int, h: int) -> np.ndarray:
     if not lbl_path.exists():
         return np.zeros((0, 4), np.float32)
     out = []
-    for line in lbl_path.read_text().splitlines():
+    for line in lbl_path.read_text(encoding="utf-8-sig").splitlines():
         p = line.split()
         if len(p) != 5:
             continue

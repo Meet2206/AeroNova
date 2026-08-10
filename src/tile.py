@@ -128,7 +128,7 @@ def run(
         lbl_path = lbl_dir / f"{img_path.stem}.txt"
         boxes = []
         if lbl_path.exists():
-            for line in lbl_path.read_text().splitlines():
+            for line in lbl_path.read_text(encoding="utf-8-sig").splitlines():
                 parts = line.split()
                 if len(parts) != 5:
                     continue

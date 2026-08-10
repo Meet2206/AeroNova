@@ -79,7 +79,7 @@ def convert_split(
         h, w = img.shape[:2]
 
         boxes, ignores = [], []
-        for line in ann_path.read_text().splitlines():
+        for line in ann_path.read_text(encoding="utf-8-sig").splitlines():
             parts = [p for p in line.strip().replace(",", " ").split() if p]
             if len(parts) < 6:
                 continue

@@ -68,7 +68,9 @@ def resolve_data_yaml(path: Path) -> str:
     path = path.resolve()
     if not path.exists():
         raise SystemExit(f"dataset config not found: {path}")
-    cfg = yaml.safe_load(path.read_text())
+    # utf-8-sig: strips a BOM if someone edited the yaml in Notepad, which
+    # otherwise makes the first key parse as "﻿path" and silently ignores it.
+    cfg = yaml.safe_load(path.read_text(encoding="utf-8-sig"))
 
     raw = Path(str(cfg.get("path", ".")))
     resolved = raw if raw.is_absolute() else (path.parent / raw).resolve()
